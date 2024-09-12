@@ -1,3 +1,5 @@
+// © Dusty Investments
+
 //@version=5
 indicator(title="RSI by Lorin", format=format.price, timeframe="", timeframe_gaps=true)
 len = input.int(title="RSI Period", minval=1, defval=14)
