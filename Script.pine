@@ -1,0 +1,175 @@
+//@version=5
+indicator(title="RSI by Lorin", format=format.price, timeframe="", timeframe_gaps=true)
+len = input.int(title="RSI Period", minval=1, defval=14)
+src = input(title="RSI Source", defval=close)
+lbR = input(title="Pivot Lookback Right", defval=5, display = display.data_window)
+lbL = input(title="Pivot Lookback Left", defval=5, display = display.data_window)
+rangeUpper = input(title="Max of Lookback Range", defval=60, display = display.data_window)
+rangeLower = input(title="Min of Lookback Range", defval=5, display = display.data_window)
+plotBull = input(title="Plot Bullish", defval=true, display = display.data_window)
+plotHiddenBull = input(title="Plot Hidden Bullish", defval=false, display = display.data_window)
+plotBear = input(title="Plot Bearish", defval=true, display = display.data_window)
+plotHiddenBear = input(title="Plot Hidden Bearish", defval=false, display = display.data_window)
+bearColor = color.red
+bullColor = color.green
+hiddenBullColor = color.new(color.green, 80)
+hiddenBearColor = color.new(color.red, 80)
+textColor = color.white
+noneColor = color.new(color.white, 100)
+
+//get the rsi data
+osc = ta.rsi(src, len)
+
+//get the k line based on the rsi data
+k = ta.sma(ta.stoch(osc, osc, osc, len), 3)
+
+//this is the classic rsi plotting but we don't need it since we use only the k line
+//plot(osc, title="RSI", linewidth=2, color=#2962FF)
+
+//we plot the k line since this is more relevant
+plot(k, "K", color=#2962FF)
+
+obLevel = hline(80, title="Overbought", color=#787B86, linestyle=hline.style_dashed)
+osLevel = hline(20, title="Oversold", color=#787B86, linestyle=hline.style_dashed)
+fill(obLevel, osLevel, title="Background", color=color.rgb(33, 150, 243, 90))
+
+plFound = na(ta.pivotlow(k, lbL, lbR)) ? false : true
+phFound = na(ta.pivothigh(k, lbL, lbR)) ? false : true
+_inRange(cond) =>
+	bars = ta.barssince(cond == true)
+	rangeLower <= bars and bars <= rangeUpper
+
+//------------------------------------------------------------------------------
+// Regular Bullish
+// Osc: Higher Low
+
+oscHL = k[lbR] > ta.valuewhen(plFound, k[lbR], 1) and _inRange(plFound[1])
+
+// Price: Lower Low
+
+priceLL = low[lbR] < ta.valuewhen(plFound, low[lbR], 1)
+bullCondAlert = priceLL and oscHL and plFound
+bullCond = plotBull and bullCondAlert
+
+plot(
+     plFound ? k[lbR] : na,
+     offset=-lbR,
+     title="Regular Bullish",
+     linewidth=2,
+     color=(bullCond ? bullColor : noneColor),
+	 display = display.pane
+     )
+
+plotshape(
+	 bullCond ? k[lbR] : na,
+	 offset=-lbR,
+	 title="Regular Bullish Label",
+	 text=" Bull ",
+	 style=shape.labelup,
+	 location=location.absolute,
+	 color=bullColor,
+	 textcolor=textColor
+	 )
+
+//------------------------------------------------------------------------------
+// Hidden Bullish
+// Osc: Lower Low
+
+oscLL = k[lbR] < ta.valuewhen(plFound, k[lbR], 1) and _inRange(plFound[1])
+
+// Price: Higher Low
+
+priceHL = low[lbR] > ta.valuewhen(plFound, low[lbR], 1)
+hiddenBullCondAlert = priceHL and oscLL and plFound
+hiddenBullCond = plotHiddenBull and hiddenBullCondAlert
+
+plot(
+	 plFound ? k[lbR] : na,
+	 offset=-lbR,
+	 title="Hidden Bullish",
+	 linewidth=2,
+	 color=(hiddenBullCond ? hiddenBullColor : noneColor),
+	 display = display.pane
+	 )
+
+plotshape(
+	 hiddenBullCond ? k[lbR] : na,
+	 offset=-lbR,
+	 title="Hidden Bullish Label",
+	 text=" H Bull ",
+	 style=shape.labelup,
+	 location=location.absolute,
+	 color=bullColor,
+	 textcolor=textColor
+	 )
+
+//------------------------------------------------------------------------------
+// Regular Bearish
+// Osc: Lower High
+
+oscLH = k[lbR] < ta.valuewhen(phFound, k[lbR], 1) and _inRange(phFound[1])
+
+// Price: Higher High
+
+priceHH = high[lbR] > ta.valuewhen(phFound, high[lbR], 1)
+
+bearCondAlert = priceHH and oscLH and phFound
+bearCond = plotBear and bearCondAlert
+
+plot(
+	 phFound ? k[lbR] : na,
+	 offset=-lbR,
+	 title="Regular Bearish",
+	 linewidth=2,
+	 color=(bearCond ? bearColor : noneColor),
+	 display = display.pane
+	 )
+
+plotshape(
+	 bearCond ? k[lbR] : na,
+	 offset=-lbR,
+	 title="Regular Bearish Label",
+	 text=" Bear ",
+	 style=shape.labeldown,
+	 location=location.absolute,
+	 color=bearColor,
+	 textcolor=textColor
+	 )
+
+//------------------------------------------------------------------------------
+// Hidden Bearish
+// Osc: Higher High
+
+oscHH = k[lbR] > ta.valuewhen(phFound, k[lbR], 1) and _inRange(phFound[1])
+
+// Price: Lower High
+
+priceLH = high[lbR] < ta.valuewhen(phFound, high[lbR], 1)
+
+hiddenBearCondAlert = priceLH and oscHH and phFound
+hiddenBearCond = plotHiddenBear and hiddenBearCondAlert
+
+plot(
+	 phFound ? k[lbR] : na,
+	 offset=-lbR,
+	 title="Hidden Bearish",
+	 linewidth=2,
+	 color=(hiddenBearCond ? hiddenBearColor : noneColor),
+	 display = display.pane
+	 )
+
+plotshape(
+	 hiddenBearCond ? k[lbR] : na,
+	 offset=-lbR,
+	 title="Hidden Bearish Label",
+	 text=" H Bear ",
+	 style=shape.labeldown,
+	 location=location.absolute,
+	 color=bearColor,
+	 textcolor=textColor
+	 )
+
+alertcondition(bullCondAlert, title='Regular Bullish Divergence', message="Found a new Regular Bullish Divergence, `Pivot Lookback Right` number of bars to the left of the current bar")
+alertcondition(hiddenBullCondAlert, title='Hidden Bullish Divergence', message='Found a new Hidden Bullish Divergence, `Pivot Lookback Right` number of bars to the left of the current bar')
+alertcondition(bearCondAlert, title='Regular Bearish Divergence', message='Found a new Regular Bearish Divergence, `Pivot Lookback Right` number of bars to the left of the current bar')
+alertcondition(hiddenBearCondAlert, title='Hidden Bearish Divergence', message='Found a new Hidden Bearish Divergence, `Pivot Lookback Right` number of bars to the left of the current bar')
